@@ -1,0 +1,27 @@
+generator client {
+    provider = "prisma-client-py"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = "file:database.db"
+}
+
+model Location {
+    id    Int    @id @default(autoincrement())
+    name  String @unique(map: "sqlite_autoindex_locations_1")
+    tasks Task[]
+
+    @@index([id], map: "ix_locations_id")
+    @@map("locations")
+}
+
+model Task {
+    id          Int       @id @default(autoincrement())
+    name        String
+    location_id Int?
+    location    Location? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([id], map: "ix_tasks_id")
+    @@map("tasks")
+}

@@ -1,7 +1,7 @@
 {
   "editor.formatOnSave": true,
   "python.linting.flake8Enabled": true,
-  "python.linting.mypyEnabled": true,
+  "python.linting.mypyEnabled": false,
   "python.linting.mypyArgs": [
     "--follow-imports=silent",
     "--ignore-missing-imports",
@@ -17,7 +17,7 @@
     "${workspaceFolder}/pyproject.toml"
   ],
   "python.sortImports.args": ["--settings=pyproject.toml"],
-  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.typeCheckingMode": "basic",
   "python.languageServer": "Pylance",
   "python.linting.flake8Args": ["--max-line-length=99"],
   "[python]": {

@@ -6,19 +6,16 @@ authors = ["Jökull Sólberg Auðunsson <jokull@solberg.is>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-SQLAlchemy = {version = "^1.4.26", extras = ["asyncio"]}
 strawberry-graphql = "^0.85.1"
 starlette = "^0.16.0"
 uvicorn = "^0.15.0"
-aiosqlite = "^0.17.0"
-greenlet = "^1.1.2"
+prisma = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
 flake8 = "^4.0.1"
 isort = "^5.10.0"
 bandit = "^1.7.0"
-sqlalchemy2-stubs = "^0.0.2-alpha.19"
 mypy = "^0.910"
 
 [build-system]
@@ -35,5 +32,5 @@ profile = "black"
 max-line-length = 99
 
 [tool.mypy]
-plugins = "strawberry.ext.mypy_plugin,sqlalchemy.ext.mypy.plugin"
+plugins = "strawberry.ext.mypy_plugin"
 implicit_reexport = false

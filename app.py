@@ -1,11 +1,11 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Union
 
+import prisma
 import strawberry
-from sqlalchemy import select
+from prisma import Client, models
+from prisma.types import TaskCreateInput
 from starlette.applications import Starlette
 from strawberry.asgi import GraphQL
-
-import models
 
 
 @strawberry.type
@@ -33,12 +33,9 @@ class Task:
         )
 
 
-# @strawberry.type
-# class LocationNotFound:
-#     message: str = "Location with this name does not exist"
-
-
-AddTaskResponse = strawberry.union("AddTaskResponse", (Task,))
+@strawberry.type
+class LocationNotFound:
+    message: str = "Location with this name does not exist"
 
 
 @strawberry.type
@@ -46,56 +43,85 @@ class LocationExists:
     message: str = "Location with this name already exist"
 
 
-AddLocationResponse = strawberry.union("AddLocationResponse", (Location, LocationExists))
+if TYPE_CHECKING:
+    AddTaskResponse = Union[Task, LocationNotFound]
+    AddLocationResponse = Union[Location, LocationExists]
+else:
+    AddTaskResponse = strawberry.union("AddTaskResponse", (Task, LocationNotFound))
+    AddLocationResponse = strawberry.union("AddLocationResponse", (Location, LocationExists))
 
 
 @strawberry.type
 class Mutation:
     @strawberry.mutation
     async def add_task(self, name: str, location_name: Optional[str]) -> AddTaskResponse:
-        async with models.get_session() as s:
-            db_location = None
-            if location_name:
-                sql = select(models.Location).where(models.Location.name == location_name)
-                db_location = (await s.execute(sql)).scalars().first()
-                # if db_location is None:
-                #     return LocationNotFound()
-            db_task = models.Task(name=name, location=db_location)
-            s.add(db_task)
-            await s.commit()
+        data: TaskCreateInput = {
+            "name": name,
+        }
+        if location_name is not None:
+            data["location"] = {
+                "connect": {
+                    "name": location_name,
+                },
+            }
+
+        try:
+            db_task = await models.Task.prisma().create(data=data)
+        except prisma.errors.RecordNotFoundError:
+            return LocationNotFound()
+
         return Task.marshal(db_task)
 
     @strawberry.mutation
     async def add_location(self, name: str) -> AddLocationResponse:
-        async with models.get_session() as s:
-            sql = select(models.Location).where(models.Location.name == name)
-            existing_db_location = (await s.execute(sql)).first()
-            if existing_db_location is not None:
-                return LocationExists()
-            db_location = models.Location(name=name)
-            s.add(db_location)
-            await s.commit()
-        return Location.marshal(db_location)
+        try:
+            location = await models.Location.prisma().create(
+                data={
+                    "name": name,
+                },
+            )
+        except prisma.errors.UniqueViolationError:
+            return LocationExists()
+
+        return Location.marshal(location)
 
 
 @strawberry.type
 class Query:
     @strawberry.field
     async def tasks(self) -> list[Task]:
-        async with models.get_session() as s:
-            sql = select(models.Task).order_by(models.Task.name)
-            db_tasks = (await s.execute(sql)).scalars().unique().all()
-        return [Task.marshal(task) for task in db_tasks]
+        # TODO: handle relational fields properly
+        return [
+            Task.marshal(task)
+            for task in await models.Task.prisma().find_many(
+                include={
+                    "location": True,
+                },
+                order={
+                    "name": "desc",
+                },
+            )
+        ]
 
     @strawberry.field
     async def locations(self) -> list[Location]:
-        async with models.get_session() as s:
-            sql = select(models.Location).order_by(models.Location.name)
-            db_locations = (await s.execute(sql)).scalars().unique().all()
-        return [Location.marshal(loc) for loc in db_locations]
+        return [
+            Location.marshal(loc)
+            for loc in await models.Location.prisma().find_many(
+                order={
+                    "name": "desc",
+                },
+            )
+        ]
+
+
+async def start_prisma() -> None:
+    client = Client(auto_register=True)
+    await client.connect()
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
 graphql_app = GraphQL(schema)
-app = Starlette()
+
+app = Starlette(on_startup=[start_prisma])
 app.add_route("/graphql", graphql_app)

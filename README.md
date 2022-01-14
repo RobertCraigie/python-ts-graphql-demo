@@ -2,7 +2,7 @@
 
 ![image](https://user-images.githubusercontent.com/701/141482559-1992d50a-07f1-42e6-b0f6-bc0bb65ccc9e.png)
 
-SQLAlchemy now has an asyncio extension. Strawberry is a new-ish GraphQL library based on Python
+[Prisma Client Python](https://github.com/RobertCraigie/prisma-client-py) is a new next-generation, fully typed ORM supporting both async and non-async use cases. Strawberry is a new-ish GraphQL library based on Python
 dataclasses that makes full use of type hints and mypy extensions. Codegen can generate typed React
 hooks in TypeScript. This template or reference project shows how all these pieces can be put
 together for an awesome typed developer experience.
@@ -27,7 +27,7 @@ npm i
 Drop and recreate all database tables
 
 ```bash
-poetry run python models.py
+poetry run prisma db push --force-reset
 ```
 
 Run the Python GraphQL backend on port :8000 - Next.js will reverse proxy `/graphql` to here
